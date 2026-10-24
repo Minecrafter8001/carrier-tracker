@@ -5,3 +5,4 @@ data/
 *.db-shm
 ecosystem.config.js
 __pycache__/
+py-eddn-tools/captures/
