@@ -21,11 +21,5 @@ module.exports = {
       shutdown_with_message: true,
       env,
     },
-    {
-      name: 'deploy-commands',
-      script: 'src/deploy-commands.js',
-      autorestart: false,
-      env,
-    },
   ],
 };

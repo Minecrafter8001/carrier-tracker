@@ -6,6 +6,7 @@ const { EddnClient } = require('./eddn');
 const { parseSighting } = require('./parser');
 const { Tracker } = require('./tracker');
 const { createAlertSender } = require('./alerts');
+const { deployCommands } = require('./deploy-commands');
 
 db.open(config.dbPath);
 
@@ -25,6 +26,7 @@ eddn.on('message', (doc) => {
 
 client.once(Events.ClientReady, (c) => {
   console.log(`[discord] logged in as ${c.user.tag}`);
+  deployCommands().catch((err) => console.error('[discord] failed to register commands:', err.message));
   tracker.on('alert', createAlertSender(client));
   eddn.start();
 });
