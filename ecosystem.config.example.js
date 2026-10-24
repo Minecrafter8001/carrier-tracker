@@ -4,10 +4,15 @@ const env = {
   CLIENT_ID: 'your-application-id',
   // Set to register commands instantly in one guild; leave empty for global registration.
   DEV_GUILD_ID: '',
-  EDDN_URL: 'tcp://eddn.edcd.io:9500',
+  // Empty = real EDDN, or the local emulator (tcp://127.0.0.1:9600) when TEST_MODE is on.
+  EDDN_URL: '',
   DB_PATH: './data/carrier-tracker.db',
   RAPID_MOVE_SECONDS: '300',
   EDDN_SILENCE_RECONNECT_SECONDS: '120',
+  // Set TEST_MODE to '1' to use py-eddn-tools/eddn_emulator.py and enable the owner-only /test command.
+  TEST_MODE: '',
+  OWNER_ID: '',
+  EMULATOR_CONTROL_URL: 'tcp://127.0.0.1:9601',
 };
 
 module.exports = {
