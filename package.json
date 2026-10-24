@@ -1,0 +1,20 @@
+{
+  "name": "carrier-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discord bot that tracks Elite Dangerous fleet carrier movements via EDDN",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "discord.js": "^14.27.0",
+    "zeromq": "^6.8.0"
+  }
+}
