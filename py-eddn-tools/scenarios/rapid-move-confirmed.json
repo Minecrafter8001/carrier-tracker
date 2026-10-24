@@ -1,0 +1,8 @@
+{
+  "description": "Dock in Sol, quick dock in Achenar by the same uploader (held), then confirmed by a second uploader. Expect: one move alert Sol -> Achenar after the third step.",
+  "steps": [
+    { "at_s": 0, "type": "dock", "system": "Sol", "uploader": "test-uploader-a" },
+    { "at_s": 10, "type": "dock", "system": "Achenar", "uploader": "test-uploader-a" },
+    { "at_s": 20, "type": "market", "system": "Achenar", "uploader": "test-uploader-b" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "description": "Dock in Sol, then a CarrierJump to Colonia 5s later. Expect: first-seen Sol, then immediate move alert.",
+  "steps": [
+    { "at_s": 0, "type": "dock", "system": "Sol" },
+    { "at_s": 5, "type": "jump", "system": "Colonia" }
+  ]
+}

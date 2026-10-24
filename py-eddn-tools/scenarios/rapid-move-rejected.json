@@ -1,0 +1,8 @@
+{
+  "description": "Dock in Sol, a single bogus quick report in Lave, then Sol again. Expect: no move alert.",
+  "steps": [
+    { "at_s": 0, "type": "dock", "system": "Sol", "uploader": "test-uploader-a" },
+    { "at_s": 10, "type": "dock", "system": "Lave", "uploader": "test-uploader-b" },
+    { "at_s": 20, "type": "dock", "system": "Sol", "uploader": "test-uploader-a" }
+  ]
+}

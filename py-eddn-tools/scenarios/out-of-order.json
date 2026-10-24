@@ -1,0 +1,7 @@
+{
+  "description": "Dock in Shinrarta Dezhra, then a backfilled report in Maia stamped 10 minutes ago. Expect: the Maia report is ignored.",
+  "steps": [
+    { "at_s": 0, "type": "dock", "system": "Shinrarta Dezhra" },
+    { "at_s": 5, "type": "dock", "system": "Maia", "ts_offset_s": -600 }
+  ]
+}
