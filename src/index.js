@@ -1,4 +1,4 @@
-const { Client, Events, GatewayIntentBits, MessageFlags } = require('discord.js');
+const { Client, Events, GatewayIntentBits } = require('discord.js');
 const config = require('./config');
 const db = require('./db');
 const commands = require('./commands');
@@ -7,6 +7,7 @@ const { parseSighting } = require('./parser');
 const { Tracker } = require('./tracker');
 const { createAlertSender } = require('./alerts');
 const { deployCommands } = require('./deploy-commands');
+const { respond } = require('./replies');
 
 db.open(config.dbPath);
 
@@ -39,9 +40,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await command.execute(interaction, { tracker });
   } catch (err) {
     console.error(`[discord] /${interaction.commandName} failed:`, err);
-    const payload = { content: 'Something went wrong running that command.', flags: MessageFlags.Ephemeral };
-    if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
-    else await interaction.reply(payload).catch(() => {});
+    await respond(interaction, { kind: 'error', description: 'Something went wrong running that command.' }).catch(() => {});
   }
 });
 

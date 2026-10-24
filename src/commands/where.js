@@ -1,6 +1,7 @@
-const { MessageFlags, SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const db = require('../db');
 const { normalizeCallsign } = require('../parser');
+const { carrierName, respond } = require('../replies');
 const { formatLastSeen } = require('./track');
 
 const data = new SlashCommandBuilder()
@@ -12,14 +13,13 @@ const data = new SlashCommandBuilder()
 
 async function execute(interaction) {
   const callsign = normalizeCallsign(interaction.options.getString('callsign', true));
-  if (!callsign) {
-    return interaction.reply({ content: 'Callsign must look like `ABC-123`.', flags: MessageFlags.Ephemeral });
-  }
+  if (!callsign) return respond(interaction, { kind: 'error', description: 'Callsign must look like `ABC-123`.' });
+  const label = interaction.inGuild() ? db.getLabel(interaction.guildId, callsign) : null;
   const state = db.getState(callsign);
-  const content = state?.system
-    ? `**${callsign}** was last seen in ${formatLastSeen(state)}.`
-    : `No sightings of **${callsign}** yet. Only carriers tracked with \`/track add\` are recorded.`;
-  return interaction.reply({ content, allowedMentions: { parse: [] } });
+  const description = state?.system
+    ? `Last seen in ${formatLastSeen(state)}`
+    : 'No sightings yet. Only carriers tracked with `/track add` are recorded.';
+  return respond(interaction, { kind: 'info', title: carrierName(callsign, label), description });
 }
 
 module.exports = { data, execute };

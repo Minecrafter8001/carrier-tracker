@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const { carrierName } = require('./replies');
 
 const COLORS = { firstSeen: 0x2ecc71, moved: 0xf39c12 };
 
@@ -7,7 +8,7 @@ function buildEmbed({ type, label, callsign, from, to, sighting }) {
   const source = [sighting.schema, sighting.event].filter(Boolean).join(' / ');
   return new EmbedBuilder()
     .setColor(COLORS[type])
-    .setTitle(label ? `${callsign} (${label})` : callsign)
+    .setTitle(carrierName(callsign, label))
     .setDescription(`${description}\n<t:${Math.floor(sighting.ts / 1000)}:R>`)
     .setFooter({ text: `EDDN ${source}` })
     .setTimestamp(sighting.ts);

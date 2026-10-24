@@ -1,16 +1,15 @@
 const {
   ChannelType,
   InteractionContextType,
-  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } = require('discord.js');
 const db = require('../db');
 const { normalizeCallsign } = require('../parser');
 const { fetchCarrierName } = require('../inara');
+const { carrierName, carrierNameMarkdown, respond } = require('../replies');
 
 const MAX_PER_GUILD = 25;
-const NO_MENTIONS = { parse: [] };
 
 const data = new SlashCommandBuilder()
   .setName('track')
@@ -48,15 +47,6 @@ const data = new SlashCommandBuilder()
       ),
   );
 
-function reply(interaction, content, ephemeral = false) {
-  if (interaction.deferred) return interaction.editReply({ content, allowedMentions: NO_MENTIONS });
-  return interaction.reply({
-    content,
-    allowedMentions: NO_MENTIONS,
-    flags: ephemeral ? MessageFlags.Ephemeral : undefined,
-  });
-}
-
 function formatLastSeen(row) {
   if (!row.system) return 'not yet seen';
   return `**${row.system}** <t:${Math.floor(row.last_ts / 1000)}:R>`;
@@ -64,7 +54,7 @@ function formatLastSeen(row) {
 
 async function execute(interaction, { tracker }) {
   if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-    return reply(interaction, 'You need the Manage Server permission to use this command.', true);
+    return respond(interaction, { kind: 'error', description: 'You need the Manage Server permission to use this command.' });
   }
 
   const guildId = interaction.guildId;
@@ -72,12 +62,15 @@ async function execute(interaction, { tracker }) {
 
   if (sub === 'add') {
     const callsign = normalizeCallsign(interaction.options.getString('callsign', true));
-    if (!callsign) return reply(interaction, 'Callsign must look like `ABC-123`.', true);
+    if (!callsign) return respond(interaction, { kind: 'error', description: 'Callsign must look like `ABC-123`.' });
     let label = interaction.options.getString('label')?.trim() || null;
     const alreadyTracked = db.isTracked(guildId, callsign);
 
     if (!alreadyTracked && db.countTracked(guildId) >= MAX_PER_GUILD) {
-      return reply(interaction, `This server already tracks the maximum of ${MAX_PER_GUILD} carriers.`, true);
+      return respond(interaction, {
+        kind: 'error',
+        description: `This server already tracks the maximum of ${MAX_PER_GUILD} carriers.`,
+      });
     }
 
     if (!label && !alreadyTracked) {
@@ -89,25 +82,36 @@ async function execute(interaction, { tracker }) {
     tracker.refresh();
     label = db.getLabel(guildId, callsign);
 
-    const lines = [`Now tracking **${callsign}**${label ? ` (${label})` : ''}. You'll get an alert on its next EDDN sighting.`];
+    const lines = ["You'll get an alert on its next EDDN sighting."];
     if (!db.getChannel(guildId)) lines.push('No alert channel set yet; use `/track channel`.');
-    return reply(interaction, lines.join('\n'));
+    return respond(interaction, {
+      kind: 'success',
+      title: `Now tracking ${carrierName(callsign, label)}`,
+      description: lines.join('\n'),
+    });
   }
 
   if (sub === 'remove') {
     const callsign = normalizeCallsign(interaction.options.getString('callsign', true));
-    if (!callsign || !db.removeTracked(guildId, callsign)) {
-      return reply(interaction, 'That carrier is not tracked in this server.', true);
+    if (!callsign) return respond(interaction, { kind: 'error', description: 'Callsign must look like `ABC-123`.' });
+    const label = db.getLabel(guildId, callsign);
+    if (!db.removeTracked(guildId, callsign)) {
+      return respond(interaction, { kind: 'error', description: 'That carrier is not tracked in this server.' });
     }
     tracker.refresh();
-    return reply(interaction, `Stopped tracking **${callsign}**.`);
+    return respond(interaction, {
+      kind: 'success',
+      description: `Stopped tracking ${carrierNameMarkdown(callsign, label)}.`,
+    });
   }
 
   if (sub === 'list') {
     const rows = db.listTracked(guildId);
-    if (!rows.length) return reply(interaction, 'No carriers tracked yet. Use `/track add`.', true);
-    const lines = rows.map((r) => `\`${r.callsign}\`${r.label ? ` ${r.label}` : ''}: ${formatLastSeen(r)}`);
-    return reply(interaction, lines.join('\n'));
+    if (!rows.length) {
+      return respond(interaction, { kind: 'info', description: 'No carriers tracked yet. Use `/track add`.', ephemeral: true });
+    }
+    const lines = rows.map((r) => `${carrierNameMarkdown(r.callsign, r.label)}: ${formatLastSeen(r)}`);
+    return respond(interaction, { kind: 'info', title: `Tracked carriers (${rows.length})`, description: lines.join('\n') });
   }
 
   if (sub === 'channel') {
@@ -115,10 +119,13 @@ async function execute(interaction, { tracker }) {
     const perms = channel.permissionsFor?.(interaction.client.user);
     const needed = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks];
     if (!perms?.has(needed)) {
-      return reply(interaction, `I need View Channel, Send Messages and Embed Links in ${channel}.`, true);
+      return respond(interaction, {
+        kind: 'error',
+        description: `I need View Channel, Send Messages and Embed Links in ${channel}.`,
+      });
     }
     db.setChannel(guildId, channel.id);
-    return reply(interaction, `Movement alerts will be posted in ${channel}.`);
+    return respond(interaction, { kind: 'success', description: `Movement alerts will be posted in ${channel}.` });
   }
 }
 
