@@ -7,6 +7,7 @@ const {
 } = require('discord.js');
 const db = require('../db');
 const { normalizeCallsign } = require('../parser');
+const { fetchCarrierName } = require('../inara');
 
 const MAX_PER_GUILD = 25;
 const NO_MENTIONS = { parse: [] };
@@ -23,7 +24,9 @@ const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o.setName('callsign').setDescription('Carrier callsign, e.g. ABC-123').setRequired(true).setMinLength(7).setMaxLength(7),
       )
-      .addStringOption((o) => o.setName('label').setDescription('Friendly name').setMaxLength(50)),
+      .addStringOption((o) =>
+        o.setName('label').setDescription('Friendly name (looked up on Inara if omitted)').setMaxLength(50),
+      ),
   )
   .addSubcommand((sub) =>
     sub
@@ -46,6 +49,7 @@ const data = new SlashCommandBuilder()
   );
 
 function reply(interaction, content, ephemeral = false) {
+  if (interaction.deferred) return interaction.editReply({ content, allowedMentions: NO_MENTIONS });
   return interaction.reply({
     content,
     allowedMentions: NO_MENTIONS,
@@ -69,14 +73,21 @@ async function execute(interaction, { tracker }) {
   if (sub === 'add') {
     const callsign = normalizeCallsign(interaction.options.getString('callsign', true));
     if (!callsign) return reply(interaction, 'Callsign must look like `ABC-123`.', true);
-    const label = interaction.options.getString('label')?.trim() || null;
+    let label = interaction.options.getString('label')?.trim() || null;
+    const alreadyTracked = db.isTracked(guildId, callsign);
 
-    if (!db.isTracked(guildId, callsign) && db.countTracked(guildId) >= MAX_PER_GUILD) {
+    if (!alreadyTracked && db.countTracked(guildId) >= MAX_PER_GUILD) {
       return reply(interaction, `This server already tracks the maximum of ${MAX_PER_GUILD} carriers.`, true);
+    }
+
+    if (!label && !alreadyTracked) {
+      await interaction.deferReply();
+      label = await fetchCarrierName(callsign);
     }
 
     db.addTracked({ guildId, callsign, label, addedBy: interaction.user.id, addedAt: Date.now() });
     tracker.refresh();
+    label = db.getLabel(guildId, callsign);
 
     const lines = [`Now tracking **${callsign}**${label ? ` (${label})` : ''}. You'll get an alert on its next EDDN sighting.`];
     if (!db.getChannel(guildId)) lines.push('No alert channel set yet; use `/track channel`.');

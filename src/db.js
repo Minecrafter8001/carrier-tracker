@@ -51,11 +51,12 @@ function open(dbPath) {
     addTracked: db.prepare(`
       INSERT INTO tracked (guild_id, callsign, label, added_by, added_at)
       VALUES (@guildId, @callsign, @label, @addedBy, @addedAt)
-      ON CONFLICT (guild_id, callsign) DO UPDATE SET label = excluded.label
+      ON CONFLICT (guild_id, callsign) DO UPDATE SET label = COALESCE(excluded.label, tracked.label)
     `),
     removeTracked: db.prepare('DELETE FROM tracked WHERE guild_id = ? AND callsign = ?'),
     countTracked: db.prepare('SELECT COUNT(*) AS n FROM tracked WHERE guild_id = ?'),
     isTracked: db.prepare('SELECT 1 FROM tracked WHERE guild_id = ? AND callsign = ?'),
+    getLabel: db.prepare('SELECT label FROM tracked WHERE guild_id = ? AND callsign = ?'),
     listTracked: db.prepare(`
       SELECT t.callsign, t.label, s.system, s.last_ts
       FROM tracked t LEFT JOIN carrier_state s ON s.callsign = t.callsign
@@ -107,6 +108,7 @@ module.exports = {
   removeTracked: (guildId, callsign) => stmts.removeTracked.run(guildId, callsign).changes > 0,
   countTracked: (guildId) => stmts.countTracked.get(guildId).n,
   isTracked: (guildId, callsign) => Boolean(stmts.isTracked.get(guildId, callsign)),
+  getLabel: (guildId, callsign) => stmts.getLabel.get(guildId, callsign)?.label ?? null,
   listTracked: (guildId) => stmts.listTracked.all(guildId),
   allTrackedCallsigns: () => stmts.allTrackedCallsigns.all().map((r) => r.callsign),
   guildsTracking: (callsign) => stmts.guildsTracking.all(callsign),
